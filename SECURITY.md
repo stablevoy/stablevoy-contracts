@@ -12,7 +12,7 @@
 
 Slither and `forge lint` run clean. Findings that are suppressed inline, with the reason:
 
-- `arbitrary-send-eth`, `low-level-calls` (Forwarder `_sendNative`): destinations are only the bound merchant and the immutable fee recipient; a low-level call is required to send the native coin.
+- `arbitrary-send-eth`, `low-level-calls` (Forwarder `_trySendNative`): destinations are only the bound merchant and the immutable fee recipient; a low-level call is required to send the native coin.
 - `incorrect-equality` (`balance == 0`): an early-return no-op guard, not an access or accounting check.
 - `events-maths` / `missing-events-arithmetic` (Forwarder `initialize`): `ForwarderDeployed` on the factory carries `feeBps` in the same transaction.
 - `reentrancy-events` (factory): only an `extcodesize` read precedes the event; the event is emitted before the clone is created.
@@ -28,4 +28,5 @@ Aderyn 0.6.8 reports only low-severity notes, all accepted:
 
 - No external review yet. Until there is one, the Stablevoy service caps the amount of each invoice.
 - A merchant contract that rejects the native coin blocks `sweepNative` for its own forwarder only; ERC-20 sweeps are unaffected. A merchant address blocked by a stablecoin issuer blocks that merchant's own sweeps of that token only.
+- Deposit addresses do not depend on the chain: the factory and the implementation share one address on every EVM network and the salt has no chain id, so a payment sent on the wrong network can still be swept, and it goes to the merchant's address on that network. That is intended: a regular wallet controls its address everywhere, so the payment is recoverable. A smart contract wallet exists only where it was deployed, and an EIP-7702 delegation lets a delegate contract move what arrives. The Stablevoy service reads every payout address on every EVM network, has the merchant sign an acknowledgement of anything that is not a regular wallet, and when the address changes after that acknowledgement it leaves the EVM networks out of new invoices, hides their payment details on open ones and stops its own sweeps. Funds already on a deposit address can still be swept to the committed payout address by anyone.
 - Funds sent directly to the factory or the implementation address cannot be recovered by anyone (there is no admin by design). The security page warns about it next to the addresses.
